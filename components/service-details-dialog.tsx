@@ -17,7 +17,7 @@ interface ServiceDetailsDialogProps {
   service: {
     id: string
     title: string
-    provider: string
+    provider_name: string
     price: string
     rating: number
     image: string
@@ -38,7 +38,7 @@ export function ServiceDetailsDialog({ service }: ServiceDetailsDialogProps) {
       <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle>{service.title}</DialogTitle>
-          <DialogDescription>Provided by {service.provider}</DialogDescription>
+          <DialogDescription>Provided by {service.provider_name}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="flex items-start gap-4">
@@ -74,7 +74,7 @@ export function ServiceDetailsDialog({ service }: ServiceDetailsDialogProps) {
           <div>
             <h4 className="mb-2 font-medium">Provider Information</h4>
             <p className="text-sm text-muted-foreground">
-              {service.provider} is a verified service provider with excellent ratings and reviews. They specialize in
+              {service.provider_name} is a verified service provider with excellent ratings and reviews. They specialize in
               this type of service and have completed many similar jobs.
             </p>
           </div>
@@ -83,7 +83,9 @@ export function ServiceDetailsDialog({ service }: ServiceDetailsDialogProps) {
           <Button variant="outline" onClick={() => setIsOpen(false)}>
             Close
           </Button>
-          <BookingDialog serviceId={service.id} serviceTitle={service.title} />
+          {/* <BookingDialog serviceId={service.id} serviceTitle={service.title} onBookingSuccessAction={function (): void {
+            throw new Error("Function not implemented.")
+          } } /> */}
         </div>
       </DialogContent>
     </Dialog>

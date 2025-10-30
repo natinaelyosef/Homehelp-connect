@@ -1,12 +1,13 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { HomeIcon, Search, Star } from "lucide-react"
-import { BookingDialog } from "@/components/booking-dialog"
-import { ServiceDetailsDialog } from "@/components/service-details-dialog"
+import Link from "next/link";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { HomeIcon, Search, Star } from "lucide-react";
+import { BookingDialog } from "@/components/booking-dialog";
+import { ServiceDetailsDialog } from "@/components/service-details-dialog";
 
 export default function FindServicesPage() {
   // Mock services data
@@ -15,57 +16,63 @@ export default function FindServicesPage() {
       id: "1",
       title: "Plumbing Services",
       provider: "Mike's Plumbing",
+      provider_name: "Mike's Plumbing",
       price: "$75/hour",
       rating: 4.8,
-      image: "/placeholder.svg?height=100&width=100",
+      image: "/service/plumber-service.png",
       description: "Professional plumbing services including repairs, installations, and maintenance.",
     },
     {
       id: "2",
       title: "Electrical Work",
       provider: "Volt Experts",
+      provider_name: "Volt Experts",
       price: "$85/hour",
       rating: 4.7,
-      image: "/placeholder.svg?height=100&width=100",
+      image: "/service/electricalPerson.jpg",
       description: "Licensed electricians for all your electrical needs, from minor repairs to major installations.",
     },
     {
       id: "3",
       title: "House Cleaning",
       provider: "CleanPro Services",
+      provider_name: "CleanPro Services",
       price: "$120",
       rating: 4.9,
-      image: "/placeholder.svg?height=100&width=100",
+      image: "/service/homecleaner.jpg",
       description: "Thorough house cleaning services with eco-friendly products and attention to detail.",
     },
     {
       id: "4",
       title: "Lawn Care",
       provider: "Green Thumb Landscaping",
+      provider_name: "Green Thumb Landscaping",
       price: "$60",
       rating: 4.6,
-      image: "/placeholder.svg?height=100&width=100",
+      image: "/service/landcare-service.png",
       description: "Complete lawn care services including mowing, trimming, and garden maintenance.",
     },
     {
       id: "5",
       title: "Painting Services",
       provider: "Perfect Painters",
+      provider_name: "Perfect Painters",
       price: "$35/hour",
       rating: 4.5,
-      image: "/placeholder.svg?height=100&width=100",
+      image: "/service/painter-service.png",
       description: "Interior and exterior painting services with premium paints and professional finish.",
     },
     {
       id: "6",
       title: "Handyman Services",
       provider: "Fix-It-All",
+      provider_name: "Fix-It-All",
       price: "$65/hour",
       rating: 4.7,
-      image: "/placeholder.svg?height=100&width=100",
+      image: "/service/handyman-service.png",
       description: "General handyman services for all your home repair and maintenance needs.",
     },
-  ]
+  ];
 
   return (
     <div className="container mx-auto py-8">
@@ -82,6 +89,7 @@ export default function FindServicesPage() {
         </Button>
       </div>
 
+      {/* Search Bar */}
       <div className="mb-8">
         <div className="relative">
           <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
@@ -89,14 +97,18 @@ export default function FindServicesPage() {
         </div>
       </div>
 
+      {/* Service Cards */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {services.map((service) => (
           <Card key={service.id} className="overflow-hidden">
             <div className="aspect-video w-full overflow-hidden">
-              <img
-                src={service.image || "/placeholder.svg"}
+              <Image
+                src={service.image}
                 alt={service.title}
+                width={300} // Adjust size based on your layout
+                height={200}
                 className="h-full w-full object-cover transition-transform hover:scale-105"
+                priority // Ensures faster loading
               />
             </div>
             <CardHeader>
@@ -121,6 +133,5 @@ export default function FindServicesPage() {
         ))}
       </div>
     </div>
-  )
+  );
 }
-

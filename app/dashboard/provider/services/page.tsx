@@ -71,7 +71,7 @@ export default function ProviderServicesPage() {
               Back to Dashboard
             </Link>
           </Button>
-          <AddServiceDialog />
+          <AddServiceDialog onAddService={(service) => toast({ title: "Service added", description: `Added ${service.title}` })} />
         </div>
       </div>
 

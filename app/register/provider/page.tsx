@@ -6,68 +6,33 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { HomeIcon, Loader2, CheckCircle2, Shield, Clock, Star, Users } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { useRouter } from "next/navigation"
+import axios from "axios"
+import { Loader2, User, Mail, Phone, Home, Lock, FileText, Award } from "lucide-react"
 
-const formSchema = z
-  .object({
-    fullName: z.string().min(2, {
-      message: "Full name must be at least 2 characters.",
-    }),
-    email: z.string().email({
-      message: "Please enter a valid email address.",
-    }),
-    phone: z.string().min(10, {
-      message: "Please enter a valid phone number.",
-    }),
-    address: z.string().min(5, {
-      message: "Address must be at least 5 characters.",
-    }),
-    idVerification: z.any().optional(),
-    certification: z.any().optional(),
-    experience: z.string({
-      required_error: "Please select years of experience.",
-    }),
-    password: z.string().min(8, {
-      message: "Password must be at least 8 characters.",
-    }),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  })
-
-const benefits = [
-  {
-    icon: Shield,
-    title: "Verified Status",
-    description: "Get verified as a trusted service provider in your community",
-  },
-  {
-    icon: Clock,
-    title: "Flexible Schedule",
-    description: "Set your own working hours and manage your availability",
-  },
-  {
-    icon: Star,
-    title: "Build Reputation",
-    description: "Earn ratings and reviews from satisfied customers",
-  },
-  {
-    icon: Users,
-    title: "Direct Access",
-    description: "Connect directly with customers looking for your services",
-  },
-]
+const formSchema = z.object({
+  fullName: z.string().min(2, { message: "Name must be at least 2 characters" }),
+  email: z.string().email({ message: "Please enter a valid email" }),
+  phone: z.string().min(10, { message: "Phone must be at least 10 digits" }).optional(),
+  address: z.string().min(5, { message: "Address must be at least 5 characters" }).optional(),
+  password: z.string().min(8, { message: "Password must be at least 8 characters" }),
+  confirmPassword: z.string(),
+  yearsExperience: z.number().int().positive().optional(),
+  idVerification: z.any().optional(),
+  certification: z.any().optional()
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"]
+})
 
 export default function ProviderRegistrationPage() {
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
+  const router = useRouter()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -76,244 +41,327 @@ export default function ProviderRegistrationPage() {
       email: "",
       phone: "",
       address: "",
-      idVerification: undefined,
-      certification: undefined,
-      experience: "",
       password: "",
       confirmPassword: "",
+      yearsExperience: undefined,
     },
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
-
-    // Simulate API call
-    setTimeout(() => {
-      console.log(values)
-      setIsLoading(false)
+    
+    try {
+      const formData = new FormData()
+      formData.append("full_name", values.fullName)
+      formData.append("email", values.email)
+      formData.append("password", values.password)
+      
+      if (values.phone) formData.append("phone_number", values.phone)
+      if (values.address) formData.append("address", values.address)
+      if (values.yearsExperience) {
+        formData.append("years_experience", values.yearsExperience.toString())
+      }
+      if (values.idVerification && values.idVerification instanceof File) {
+        formData.append("id_verification", values.idVerification)
+      }
+      if (values.certification && values.certification instanceof File) {
+        formData.append("certification", values.certification)
+      }
+  
+      const response = await axios.post(
+        'http://localhost:8000/register/provider/request',
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      )
+  
       toast({
         title: "Registration submitted!",
-        description: "Your application is under review. We'll notify you once approved.",
+        description: response.data.message,
       })
-    }, 2000)
+
+      router.push(response.data.redirect_to || "/login")
+    } catch (error: any) {
+      toast({
+        title: "Registration failed",
+        description: error.response?.data?.detail || "An error occurred",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
-    <div className="flex min-h-screen">
-      {/* Left side - Form */}
-      <div className="flex-1 overflow-y-auto p-6 md:p-8">
-        <Link href="/" className="mb-8 flex items-center gap-2">
-          <HomeIcon className="h-6 w-6 text-homehelp-600" />
-          <span className="text-lg font-bold">HomeHelp</span>
-        </Link>
-        <div className="mx-auto max-w-md">
-          <Card>
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl">Create a service provider account</CardTitle>
-              <CardDescription>Enter your information to apply as a service provider</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="fullName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="John Doe" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="john.doe@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
-                        <FormControl>
-                          <Input placeholder="+1 (555) 123-4567" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="address"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Address</FormLabel>
-                        <FormControl>
-                          <Input placeholder="123 Main St, City, State, ZIP" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          <Button variant="link" className="h-auto p-0 text-xs" type="button">
-                            Use my current location
-                          </Button>
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="idVerification"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>ID Verification</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="file"
-                            accept="image/*,.pdf"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0]
-                              field.onChange(file)
-                            }}
-                          />
-                        </FormControl>
-                        <FormDescription>Upload a photo of your National ID or Passport for verification</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="certification"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Certification/Working Skill Proof</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="file"
-                            accept="image/*,.pdf"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0]
-                              field.onChange(file)
-                            }}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Upload certificates, licenses, or proof of your professional skills
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="experience"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Years of Experience</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-2xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Join Our Service Provider Network
+          </h1>
+          <p className="text-gray-600">
+            Register your business to connect with homeowners in your area
+          </p>
+        </div>
+
+        <Card className="shadow-lg rounded-xl overflow-hidden border-0">
+          <CardHeader className="bg-homehelp-600 text-white">
+            <CardTitle className="text-2xl flex items-center gap-2">
+              <User className="h-6 w-6" />
+              Service Provider Registration
+            </CardTitle>
+            <CardDescription className="text-white/90">
+              Complete your profile to start receiving service requests
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Personal Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium text-gray-900 border-b pb-2">
+                      Personal Information
+                    </h3>
+                    
+                    <FormField
+                      control={form.control}
+                      name="fullName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-gray-500" />
+                            Full Name
+                          </FormLabel>
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select years of experience" />
-                            </SelectTrigger>
+                            <Input placeholder="John Doe" {...field} className="bg-white" />
                           </FormControl>
-                          <SelectContent>
-                            <SelectItem value="0-1">Less than 1 year</SelectItem>
-                            <SelectItem value="1-3">1-3 years</SelectItem>
-                            <SelectItem value="3-5">3-5 years</SelectItem>
-                            <SelectItem value="5+">5+ years</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <Input type="password" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Confirm Password</FormLabel>
-                        <FormControl>
-                          <Input type="password" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit" className="w-full" disabled={isLoading}>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <Mail className="h-4 w-4 text-gray-500" />
+                            Email
+                          </FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="john.doe@example.com" {...field} className="bg-white" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <Phone className="h-4 w-4 text-gray-500" />
+                            Phone Number
+                          </FormLabel>
+                          <FormControl>
+                            <Input placeholder="+1 (555) 123-4567" {...field} className="bg-white" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Business Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium text-gray-900 border-b pb-2">
+                      Business Information
+                    </h3>
+
+                    <FormField
+                      control={form.control}
+                      name="address"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <Home className="h-4 w-4 text-gray-500" />
+                            Business Address
+                          </FormLabel>
+                          <FormControl>
+                            <Input placeholder="123 Main St, City, State, ZIP" {...field} className="bg-white" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="yearsExperience"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <Award className="h-4 w-4 text-gray-500" />
+                            Years of Experience
+                          </FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              {...field}
+                              onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                              className="bg-white"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Security Section */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-900 border-b pb-2">
+                    Account Security
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <Lock className="h-4 w-4 text-gray-500" />
+                            Password
+                          </FormLabel>
+                          <FormControl>
+                            <Input type="password" {...field} className="bg-white" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <Lock className="h-4 w-4 text-gray-500" />
+                            Confirm Password
+                          </FormLabel>
+                          <FormControl>
+                            <Input type="password" {...field} className="bg-white" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Documents Section */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-900 border-b pb-2">
+                    Verification Documents
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    You can submit these documents now or later in your provider dashboard
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="idVerification"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-gray-500" />
+                            ID Verification
+                          </FormLabel>
+                          <FormControl>
+                            <div className="flex items-center gap-2">
+                              <Input 
+                                type="file" 
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                onChange={(e) => field.onChange(e.target.files?.[0])}
+                                className="bg-white"
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="certification"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <Award className="h-4 w-4 text-gray-500" />
+                            Professional Certification
+                          </FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="file" 
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              onChange={(e) => field.onChange(e.target.files?.[0])}
+                              className="bg-white"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4">
+                  <Button 
+                    variant="outline" 
+                    asChild
+                    className="w-full sm:w-auto"
+                  >
+                    <Link href="/">
+                      Back to Home
+                    </Link>
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    className="w-full sm:w-auto bg-homehelp-600 hover:bg-homehelp-700"
+                    disabled={isLoading}
+                  >
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Submitting...
+                        Processing...
                       </>
                     ) : (
-                      "Submit Application"
+                      "Complete Registration"
                     )}
                   </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
 
-      {/* Right side - Benefits */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col bg-homehelp-600 text-white p-8">
-        <div className="flex-1 flex flex-col justify-center">
-          <h2 className="text-3xl font-bold mb-6">Join Our Service Provider Network</h2>
-          <p className="text-lg mb-8 text-white/90">
-            Become a verified service provider and connect with customers in your area. Enjoy the benefits of being part of our trusted network.
-          </p>
-          <div className="space-y-6">
-            {benefits.map((benefit, index) => (
-              <div key={index} className="flex items-start gap-4">
-                <div className="rounded-full bg-white/10 p-2">
-                  <benefit.icon className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-1">{benefit.title}</h3>
-                  <p className="text-white/80">{benefit.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="mt-8">
-          <div className="flex items-center gap-2 text-sm text-white/80">
-            <CheckCircle2 className="h-4 w-4" />
-            <span>Already have an account?</span>
-            <Link href="/login" className="text-white font-medium hover:underline">
-              Log in
+        <div className="mt-6 text-center text-sm text-gray-600">
+          <p>
+            Already have an account?{' '}
+            <Link href="/login" className="font-medium text-homehelp-600 hover:text-homehelp-700">
+              Sign in here
             </Link>
-          </div>
+          </p>
         </div>
       </div>
     </div>
   )
 }
-
